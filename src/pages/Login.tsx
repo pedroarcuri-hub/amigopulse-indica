@@ -4,122 +4,68 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
-import { USER_AREAS, type UserAreaValue } from "@/lib/areas";
-import { APP_URL, INDICA_PROGRAM_NAME } from "@/lib/app-url";
+import { isCorporateEmail, normalizeEmail } from "@/lib/corporate-email";
+import { requestLoginCode, verifyLoginCode } from "@/lib/login-code-auth";
+
+type Step = "email" | "code";
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"signin" | "signup" | "forgot">("signin");
+  const [step, setStep] = useState<Step>("email");
   const [busy, setBusy] = useState(false);
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [forgotEmail, setForgotEmail] = useState("");
-
-  const [nome, setNome] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [area, setArea] = useState<UserAreaValue>("outras");
-  const [cargo, setCargo] = useState("");
-  const [telefone, setTelefone] = useState("");
-
-  const formatTelefone = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-  const isTelefoneValid = (v: string) => /^\(\d{2}\) \d{5}-\d{4}$/.test(v);
+  const [code, setCode] = useState("");
 
   useEffect(() => {
-    if (!loading && user) navigate("/app");
+    if (!loading && user) navigate("/dashboard", { replace: true });
   }, [user, loading, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Bem-vindo!");
-    navigate("/app");
-  };
-
-  const handleForgot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${APP_URL}/reset-password`,
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Enviamos um link de recuperação para seu e-mail.");
-    setTab("signin");
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!signupEmail.endsWith("@amigotech.com.br") && !signupEmail.endsWith("@amigoapp.com.br")) {
-      return toast.error("Cadastro permitido apenas para colaboradores da Amigo Tech.");
-    }
-    if (!isTelefoneValid(telefone)) {
-      return toast.error("Informe um telefone válido.");
+    const normalized = normalizeEmail(email);
+    if (!isCorporateEmail(normalized)) {
+      return toast.error("Use seu e-mail corporativo @amigotech.com.br ou @amigoapp.com.br.");
     }
     setBusy(true);
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        emailRedirectTo: `${APP_URL}/app`,
-        data: { full_name: nome },
-      },
-    });
-    if (error) {
+    try {
+      await requestLoginCode(normalized);
+      setEmail(normalized);
+      setCode("");
+      setStep("code");
+      toast.success("Código enviado! Verifique seu e-mail.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o código.");
+    } finally {
       setBusy(false);
-      return toast.error(error.message);
     }
+  };
 
-    const newUserId = signUpData.user?.id;
-    if (newUserId) {
-      // Update profile extras
-      await supabase
-        .from("profiles")
-        .update({ area, cargo, phone: telefone })
-        .eq("id", newUserId);
-
-      // Ensure collaborator profile exists
-      await supabase
-        .from("collaborator_profiles")
-        .upsert({ user_id: newUserId, department: area, position: cargo }, { onConflict: "user_id" });
-
-      // Link to Indica program
-      const { data: prog } = await supabase
-        .from("programs")
-        .select("id")
-        .eq("name", INDICA_PROGRAM_NAME)
-        .maybeSingle();
-      if (prog?.id) {
-        await supabase
-          .from("user_programs")
-          .upsert(
-            { user_id: newUserId, program_id: prog.id, status: "active" },
-            { onConflict: "user_id,program_id" },
-          );
-      }
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code.length !== 6) {
+      return toast.error("Informe o código de 6 dígitos.");
     }
-    setBusy(false);
+    setBusy(true);
+    try {
+      await verifyLoginCode(email, code);
+      toast.success("Bem-vindo!");
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Código inválido ou expirado.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
-    toast.success("Cadastro realizado! Verifique seu e-mail para confirmar.");
-    setTab("signin");
-    setEmail(signupEmail);
+  const backToEmail = () => {
+    setStep("email");
+    setCode("");
   };
 
   return (
@@ -134,98 +80,71 @@ export default function LoginPage() {
         </div>
 
         <Card className="p-6 shadow-elegant">
-          <Tabs value={tab === "forgot" ? "signin" : tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
+          <h2 className="text-lg font-semibold mb-1">Entrar</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            {step === "email"
+              ? "Informe seu e-mail corporativo para receber um código de acesso."
+              : `Enviamos um código de 6 dígitos para ${email}.`}
+          </p>
 
-            <TabsContent value="signin">
-              {tab === "forgot" ? (
-                <form onSubmit={handleForgot} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="femail">E-mail corporativo</Label>
-                    <Input id="femail" type="email" required value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)} placeholder="voce@amigotech.com.br" />
-                  </div>
-                  <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-elegant">
-                    {busy ? "Enviando..." : "Enviar link de recuperação"}
-                  </Button>
-                  <button type="button" onClick={() => setTab("signin")}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground">
-                    ← Voltar para entrar
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail corporativo</Label>
-                    <Input id="email" type="email" required value={email}
-                      onChange={(e) => setEmail(e.target.value)} placeholder="voce@amigotech.com.br" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Senha</Label>
-                      <button type="button" onClick={() => { setForgotEmail(email); setTab("forgot"); }}
-                        className="text-xs text-primary hover:underline">
-                        Esqueci minha senha
-                      </button>
-                    </div>
-                    <Input id="password" type="password" required value={password}
-                      onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                  <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-elegant">
-                    {busy ? "Entrando..." : "Entrar"}
-                  </Button>
-                </form>
-              )}
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome completo</Label>
-                  <Input id="nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
+          {step === "email" ? (
+            <form onSubmit={handleRequestCode} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail corporativo</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@amigotech.com.br"
+                />
+              </div>
+              <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-elegant">
+                {busy ? "Enviando..." : "Enviar código"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Código de acesso</Label>
+                <div className="flex justify-center">
+                  <InputOTP
+                    id="code"
+                    maxLength={6}
+                    value={code}
+                    onChange={setCode}
+                    disabled={busy}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone (WhatsApp)</Label>
-                  <Input id="telefone" type="tel" required value={telefone}
-                    onChange={(e) => setTelefone(formatTelefone(e.target.value))}
-                    placeholder="(99) 99999-9999" inputMode="numeric" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="semail">E-mail @amigotech.com.br ou @amigoapp.com.br</Label>
-                  <Input id="semail" type="email" required value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="spass">Senha (mín 6)</Label>
-                  <Input id="spass" type="password" required minLength={6}
-                    value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Área</Label>
-                    <Select value={area} onValueChange={(v) => setArea(v as UserAreaValue)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {USER_AREAS.map((a) => (
-                          <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cargo">Cargo</Label>
-                    <Input id="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} />
-                  </div>
-                </div>
-                <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-elegant">
-                  {busy ? "Criando..." : "Criar conta"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              </div>
+              <Button
+                type="submit"
+                disabled={busy || code.length !== 6}
+                className="w-full bg-gradient-primary shadow-elegant"
+              >
+                {busy ? "Validando..." : "Validar código"}
+              </Button>
+              <button
+                type="button"
+                onClick={backToEmail}
+                disabled={busy}
+                className="w-full text-sm text-muted-foreground hover:text-foreground"
+              >
+                ← Usar outro e-mail
+              </button>
+            </form>
+          )}
         </Card>
 
         <p className="text-center text-white/70 text-xs mt-6">
