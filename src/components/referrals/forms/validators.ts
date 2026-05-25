@@ -13,16 +13,21 @@ const emailSchema = z
 
 const notesSchema = z.string().max(2000, "Máximo de 2000 caracteres.").optional();
 
+const locationSchema = {
+  city: z.string().max(80, "Cidade muito longa.").optional(),
+  state: z.string().max(2).optional(),
+};
+
 export const professionalReferralSchema = z.object({
   type: z.literal("professional"),
   id: z.string().optional(),
   fullName: z.string().min(3, "Informe o nome completo."),
   email: emailSchema,
   phone: phoneSchema,
+  healthcareRelation: z.string().min(1, "Selecione a relação com a saúde."),
   specialty: z.string().max(120).optional(),
   crm: z.string().max(20).optional(),
-  city: z.string().max(80).optional(),
-  state: z.string().max(2).optional(),
+  ...locationSchema,
   notes: notesSchema,
 });
 
@@ -32,9 +37,10 @@ export const studentReferralSchema = z.object({
   fullName: z.string().min(3, "Informe o nome completo."),
   email: emailSchema,
   phone: phoneSchema,
-  university: z.string().max(120).optional(),
+  university: z.string().min(2, "Informe a instituição de ensino."),
   course: z.string().max(120).optional(),
   semester: z.string().max(40).optional(),
+  ...locationSchema,
   notes: notesSchema,
 });
 
@@ -51,6 +57,7 @@ export const companyReferralSchema = z.object({
     .optional()
     .refine(isValidCnpjMasked, "CNPJ inválido."),
   employeesCount: z.string().optional(),
+  ...locationSchema,
   notes: notesSchema,
 });
 

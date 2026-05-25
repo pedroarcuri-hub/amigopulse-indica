@@ -8,6 +8,7 @@ import type { ReferralFormProps, StudentReferralData } from "./types";
 import { FormSection } from "./shared/FormSection";
 import { FormActions } from "./shared/FormActions";
 import { ReferralTextField } from "./shared/ReferralTextField";
+import { CityUfFields } from "./shared/CityUfFields";
 import { isReadonlyMode } from "./shared/form-mode";
 
 const defaults: StudentReferralFormValues = {
@@ -18,6 +19,8 @@ const defaults: StudentReferralFormValues = {
   university: "",
   course: "",
   semester: "",
+  city: "",
+  state: "",
   notes: "",
 };
 
@@ -49,7 +52,7 @@ export function StudentReferralForm({
       <form onSubmit={handleSubmit} className={cn("space-y-5", className)}>
         <FormSection
           title="Dados do estudante"
-          description="Informações do estudante indicado."
+          description="Informações do estudante indicado ao programa."
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
@@ -77,12 +80,15 @@ export function StudentReferralForm({
               placeholder="(99) 99999-9999"
               onChangeMask={maskPhoneBr}
             />
-            <ReferralTextField
-              name="university"
-              label="Instituição de ensino"
-              mode={mode}
-              placeholder="Universidade Exemplo"
-            />
+            <div className="sm:col-span-2">
+              <ReferralTextField
+                name="university"
+                label="Instituição de ensino"
+                mode={mode}
+                required
+                placeholder="Universidade Exemplo"
+              />
+            </div>
             <ReferralTextField name="course" label="Curso" mode={mode} placeholder="Medicina" />
             <ReferralTextField
               name="semester"
@@ -90,10 +96,16 @@ export function StudentReferralForm({
               mode={mode}
               placeholder="6º semestre"
             />
+            <CityUfFields
+              control={form.control}
+              cityName="city"
+              stateName="state"
+              mode={mode}
+            />
           </div>
         </FormSection>
 
-        <FormSection title="Observações">
+        <FormSection title="Observações" description="Opcional.">
           <ReferralTextField
             name="notes"
             label="Observações"

@@ -50,3 +50,18 @@ export const EMPLOYEE_RANGES = [
   { value: "51-200", label: "51 a 200" },
   { value: "200+", label: "Mais de 200" },
 ] as const;
+
+/** Relação com saúde — alinhado ao HealthcareRelationSelector do Premia. */
+export const HEALTHCARE_RELATIONS = [
+  { value: "medico", label: "Médico(a)" },
+  { value: "dentista", label: "Dentista" },
+  { value: "enfermeiro", label: "Enfermeiro(a)" },
+  { value: "gestor", label: "Gestor(a) / administrador(a)" },
+  { value: "outro", label: "Outro profissional de saúde" },
+] as const;
+
+export const REFERRAL_DB_TYPE_KEYS = {
+  company: "client_company",
+  professional: "client_professional",
+  student: "client_student",
+} as const;

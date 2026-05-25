@@ -1,22 +1,17 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ReferralFormByType,
-  buildReferralSubmitPayload,
-  REFERRAL_FORM_TYPE_DESCRIPTION,
-  REFERRAL_FORM_TYPE_ICON,
-  REFERRAL_FORM_TYPE_LABEL,
+  ReferralTypeSelector,
   type ReferralFormData,
   type ReferralFormType,
 } from "@/components/referrals/forms";
-import { createReferral } from "@/lib/referrals/create-referral";
-import { USE_REFERRALS_MOCK } from "@/lib/referrals/service";
-
-const FORM_TYPES: ReferralFormType[] = ["professional", "student", "company"];
+import { submitReferral } from "@/lib/referrals/submit-referral";
 
 export default function NovaIndicacaoPage() {
   const navigate = useNavigate();
@@ -32,19 +27,14 @@ export default function NovaIndicacaoPage() {
 
     setSubmitting(true);
     try {
-      const payload = buildReferralSubmitPayload(data, {
-        user_id: user.id,
-        email: user.email,
-        full_name: profile?.nome ?? null,
+      await submitReferral(data, {
+        userId: user.id,
+        createdBy: {
+          user_id: user.id,
+          email: user.email,
+          full_name: profile?.nome ?? null,
+        },
       });
-
-      if (USE_REFERRALS_MOCK) {
-        await new Promise((r) => setTimeout(r, 600));
-        console.info("[mock] ReferralSubmitPayload", payload);
-      } else {
-        await createReferral(payload, { userId: user.id });
-      }
-
       toast.success("Indicação enviada com sucesso!");
       navigate("/app/indicacoes");
     } catch (err) {
@@ -57,52 +47,29 @@ export default function NovaIndicacaoPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nova indicação</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Escolha o tipo e preencha os dados do indicado.
-        </p>
+    <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto space-y-6 pb-10">
+      <div className="flex items-start gap-3">
+        <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" asChild>
+          <Link to="/app/indicacoes" aria-label="Voltar">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Nova indicação</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Indique um novo contato para o programa Amigo Indica.
+          </p>
+        </div>
       </div>
 
-      <Card className="p-3 sm:p-4 shadow-sm">
-        <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
-          Tipo de indicação
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {FORM_TYPES.map((t) => {
-            const Icon = REFERRAL_FORM_TYPE_ICON[t];
-            const active = type === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={cn(
-                  "flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  active
-                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                    : "border-border hover:border-primary/30 hover:bg-muted/40",
-                )}
-                aria-pressed={active}
-              >
-                <Icon
-                  className={cn(
-                    "h-5 w-5",
-                    active ? "text-primary" : "text-muted-foreground",
-                  )}
-                />
-                <span className="text-sm font-semibold">
-                  {REFERRAL_FORM_TYPE_LABEL[t]}
-                </span>
-                <span className="text-[11px] text-muted-foreground leading-snug">
-                  {REFERRAL_FORM_TYPE_DESCRIPTION[t]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <Card className="shadow-sm border bg-gradient-card">
+        <CardContent className="p-4 sm:p-5">
+          <ReferralTypeSelector
+            value={type}
+            onChange={setType}
+            disabled={submitting}
+          />
+        </CardContent>
       </Card>
 
       <ReferralFormByType

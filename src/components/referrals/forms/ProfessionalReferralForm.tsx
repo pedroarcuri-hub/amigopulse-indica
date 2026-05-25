@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/components/ui/form";
+import { Form, FormField as RHFFormField } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FormField as RHFFormField } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { maskPhoneBr } from "./masks";
+import { HEALTHCARE_RELATIONS } from "./constants";
 import {
   professionalReferralSchema,
   type ProfessionalReferralFormValues,
@@ -20,14 +20,15 @@ import { FormSection } from "./shared/FormSection";
 import { FormField } from "./shared/FormField";
 import { FormActions } from "./shared/FormActions";
 import { ReferralTextField } from "./shared/ReferralTextField";
+import { CityUfFields } from "./shared/CityUfFields";
 import { fieldReadOnlyProps, isReadonlyMode } from "./shared/form-mode";
-import { BRAZIL_STATES } from "./constants";
 
 const defaults: ProfessionalReferralFormValues = {
   type: "professional",
   fullName: "",
   email: "",
   phone: "",
+  healthcareRelation: "",
   specialty: "",
   crm: "",
   city: "",
@@ -64,7 +65,7 @@ export function ProfessionalReferralForm({
       <form onSubmit={handleSubmit} className={cn("space-y-5", className)}>
         <FormSection
           title="Dados do profissional"
-          description="Informações do profissional de saúde indicado."
+          description="Informações do profissional de saúde que você está indicando."
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
@@ -92,6 +93,30 @@ export function ProfessionalReferralForm({
               placeholder="(99) 99999-9999"
               onChangeMask={maskPhoneBr}
             />
+            <RHFFormField
+              control={form.control}
+              name="healthcareRelation"
+              render={({ field }) => (
+                <FormField label="Relação com a saúde" required>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    disabled={ro.disabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HEALTHCARE_RELATIONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+            />
             <ReferralTextField
               name="specialty"
               label="Especialidade"
@@ -104,35 +129,16 @@ export function ProfessionalReferralForm({
               mode={mode}
               placeholder="123456/SP"
             />
-            <ReferralTextField name="city" label="Cidade" mode={mode} placeholder="São Paulo" />
-            <RHFFormField
+            <CityUfFields
               control={form.control}
-              name="state"
-              render={({ field }) => (
-                <FormField label="UF">
-                  <Select
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    disabled={ro.disabled}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BRAZIL_STATES.map((uf) => (
-                        <SelectItem key={uf} value={uf}>
-                          {uf}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              )}
+              cityName="city"
+              stateName="state"
+              mode={mode}
             />
           </div>
         </FormSection>
 
-        <FormSection title="Observações" description="Opcional — contexto para o time comercial.">
+        <FormSection title="Observações" description="Opcional.">
           <ReferralTextField
             name="notes"
             label="Observações"

@@ -17,6 +17,7 @@ import { FormSection } from "./shared/FormSection";
 import { FormField } from "./shared/FormField";
 import { FormActions } from "./shared/FormActions";
 import { ReferralTextField } from "./shared/ReferralTextField";
+import { CityUfFields } from "./shared/CityUfFields";
 import { fieldReadOnlyProps, isReadonlyMode } from "./shared/form-mode";
 
 const defaults: CompanyReferralFormValues = {
@@ -28,6 +29,8 @@ const defaults: CompanyReferralFormValues = {
   segment: "",
   cnpj: "",
   employeesCount: "",
+  city: "",
+  state: "",
   notes: "",
 };
 
@@ -150,10 +153,16 @@ export function CompanyReferralForm({
                 </FormField>
               )}
             />
+            <CityUfFields
+              control={form.control}
+              cityName="city"
+              stateName="state"
+              mode={mode}
+            />
           </div>
         </FormSection>
 
-        <FormSection title="Observações">
+        <FormSection title="Observações" description="Opcional.">
           <ReferralTextField
             name="notes"
             label="Observações"
