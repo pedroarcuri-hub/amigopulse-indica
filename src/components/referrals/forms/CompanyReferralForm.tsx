@@ -29,8 +29,10 @@ const defaults: CompanyReferralFormValues = {
   segment: "",
   cnpj: "",
   employeesCount: "",
-  city: "",
-  state: "",
+  state_id: "",
+  state_uf: "",
+  city_id: "",
+  city_name: "",
   notes: "",
 };
 
@@ -155,8 +157,12 @@ export function CompanyReferralForm({
             />
             <CityUfFields
               control={form.control}
-              cityName="city"
-              stateName="state"
+              names={{
+                stateId: "state_id",
+                stateUf: "state_uf",
+                cityId: "city_id",
+                cityName: "city_name",
+              }}
               mode={mode}
             />
           </div>

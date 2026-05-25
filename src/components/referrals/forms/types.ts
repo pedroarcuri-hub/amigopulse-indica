@@ -3,11 +3,17 @@ export type ReferralFormType = "professional" | "student" | "company";
 
 export type ReferralFormMode = "create" | "edit" | "readonly";
 
-export interface ReferralBase {
+/** Localização (UF/Cidade) vinda de brazil_states + brazil_cities. */
+export interface ReferralLocationFields {
+  state_id?: string;
+  state_uf?: string;
+  city_id?: string;
+  city_name?: string;
+}
+
+export interface ReferralBase extends ReferralLocationFields {
   id?: string;
   type: ReferralFormType;
-  city?: string;
-  state?: string;
   notes?: string;
 }
 

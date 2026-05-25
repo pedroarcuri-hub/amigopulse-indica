@@ -31,8 +31,10 @@ const defaults: ProfessionalReferralFormValues = {
   healthcareRelation: "",
   specialty: "",
   crm: "",
-  city: "",
-  state: "",
+  state_id: "",
+  state_uf: "",
+  city_id: "",
+  city_name: "",
   notes: "",
 };
 
@@ -131,8 +133,12 @@ export function ProfessionalReferralForm({
             />
             <CityUfFields
               control={form.control}
-              cityName="city"
-              stateName="state"
+              names={{
+                stateId: "state_id",
+                stateUf: "state_uf",
+                cityId: "city_id",
+                cityName: "city_name",
+              }}
               mode={mode}
             />
           </div>

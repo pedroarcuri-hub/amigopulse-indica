@@ -14,8 +14,10 @@ const emailSchema = z
 const notesSchema = z.string().max(2000, "Máximo de 2000 caracteres.").optional();
 
 const locationSchema = {
-  city: z.string().max(80, "Cidade muito longa.").optional(),
-  state: z.string().max(2).optional(),
+  state_id: z.string().optional(),
+  state_uf: z.string().max(2).optional(),
+  city_id: z.string().optional(),
+  city_name: z.string().max(120).optional(),
 };
 
 export const professionalReferralSchema = z.object({

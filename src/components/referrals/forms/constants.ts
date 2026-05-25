@@ -38,12 +38,6 @@ export const COMPANY_SEGMENTS = [
   { value: "outro", label: "Outro" },
 ] as const;
 
-export const BRAZIL_STATES = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-  "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-] as const;
-
 export const EMPLOYEE_RANGES = [
   { value: "1-10", label: "1 a 10" },
   { value: "11-50", label: "11 a 50" },

@@ -51,8 +51,10 @@ function baseMetadata(
     referrer_email: createdBy.email.trim().toLowerCase(),
     pipeline_stage: DEFAULT_PIPELINE_STAGE,
     origin: DEFAULT_REFERRAL_ORIGIN,
-    city: data.city ?? null,
-    state: data.state ?? null,
+    state_id: data.state_id ? Number(data.state_id) : null,
+    state_uf: data.state_uf ?? null,
+    city_id: data.city_id ? Number(data.city_id) : null,
+    city_name: data.city_name ?? null,
   };
 }
 
