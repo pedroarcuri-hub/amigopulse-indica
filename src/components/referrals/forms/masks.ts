@@ -23,6 +23,15 @@ export function maskCnpj(raw: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 }
 
+/** 000.000.000-00 */
+export function maskCpf(raw: string): string {
+  const d = digitsOnly(raw).slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
 /** CRM/UF — até 7 dígitos + UF opcional simplificado */
 export function maskCrm(raw: string): string {
   return raw.replace(/[^\dA-Za-z/-]/g, "").slice(0, 12).toUpperCase();
