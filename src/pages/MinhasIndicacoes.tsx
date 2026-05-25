@@ -87,6 +87,11 @@ export default function MinhasIndicacoesPage() {
     setDrawerOpen(true);
   };
 
+  const handleReferralUpdate = (updated: ReferralRow) => {
+    setReferrals((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setSelected(updated);
+  };
+
   const filtered = useMemo(
     () => filterAndSortReferrals(referrals, filters),
     [referrals, filters],
@@ -217,6 +222,7 @@ export default function MinhasIndicacoesPage() {
       <ReferralDetailDrawer
         referral={selected}
         open={drawerOpen}
+        onReferralUpdate={handleReferralUpdate}
         onOpenChange={(open) => {
           setDrawerOpen(open);
           if (!open) setSelected(null);

@@ -1,4 +1,4 @@
-import type { ElementType, ReactNode } from "react";
+import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import {
   Sheet,
   SheetContent,
@@ -15,14 +15,18 @@ import {
   type ReferralConclusion,
   type ReferralTimelineStep,
 } from "@/lib/referrals/detail";
+import { updateReferralConclusion } from "@/lib/referrals/service";
+import { useAuth } from "@/lib/auth-context";
 import type { ReferralRow } from "@/lib/db-adapter";
 import { cn } from "@/lib/utils";
-import { Check, Circle, XCircle, Trophy, Ban } from "lucide-react";
+import { toast } from "sonner";
+import { Check, Circle, XCircle, Trophy, Ban, Loader2 } from "lucide-react";
 
 interface ReferralDetailDrawerProps {
   referral: ReferralRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onReferralUpdate?: (updated: ReferralRow) => void;
 }
 
 const CONCLUSION_OPTIONS: {
@@ -37,21 +41,24 @@ const CONCLUSION_OPTIONS: {
     label: "Desqualificada",
     description: "Perfil fora do público-alvo",
     icon: Ban,
-    activeClass: "border-muted-foreground/50 bg-muted text-muted-foreground ring-2 ring-muted-foreground/30",
+    activeClass:
+      "border-muted-foreground/50 bg-muted text-muted-foreground ring-2 ring-muted-foreground/30",
   },
   {
     key: "convertida",
     label: "Convertida",
     description: "Virou cliente Amigo",
     icon: Trophy,
-    activeClass: "border-success-border bg-success-soft text-success-soft-foreground ring-2 ring-success/40",
+    activeClass:
+      "border-success-border bg-success-soft text-success-soft-foreground ring-2 ring-success/40",
   },
   {
     key: "perdida",
     label: "Perdida",
     description: "Não avançou no funil",
     icon: XCircle,
-    activeClass: "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/30",
+    activeClass:
+      "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/30",
   },
 ];
 
@@ -59,8 +66,40 @@ export function ReferralDetailDrawer({
   referral,
   open,
   onOpenChange,
+  onReferralUpdate,
 }: ReferralDetailDrawerProps) {
-  if (!referral) {
+  const { user } = useAuth();
+  const [current, setCurrent] = useState<ReferralRow | null>(referral);
+  const [saving, setSaving] = useState<ReferralConclusion | null>(null);
+
+  useEffect(() => {
+    setCurrent(referral);
+  }, [referral]);
+
+  const handleSelectConclusion = async (conclusion: ReferralConclusion) => {
+    if (!current || !user) return;
+    if (saving) return;
+
+    setSaving(conclusion);
+    try {
+      const updated = await updateReferralConclusion({
+        referralId: current.id,
+        userId: user.id,
+        conclusion,
+      });
+      setCurrent(updated);
+      onReferralUpdate?.(updated);
+      toast.success("Conclusão salva com sucesso.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível salvar a conclusão.",
+      );
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  if (!current) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto" />
@@ -68,8 +107,9 @@ export function ReferralDetailDrawer({
     );
   }
 
-  const detail = toReferralDetailView(referral);
-  const infoRows = referralInfoRows(referral);
+  const detail = toReferralDetailView(current);
+  const infoRows = referralInfoRows(current);
+  const isSaving = saving !== null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -80,12 +120,12 @@ export function ReferralDetailDrawer({
         <SheetHeader className="px-6 pt-6 pb-4 space-y-3 text-left border-b bg-gradient-card">
           <div className="flex items-start justify-between gap-3 pr-8">
             <SheetTitle className="text-xl font-bold leading-snug">
-              {referral.nome_lead}
+              {current.nome_lead}
             </SheetTitle>
-            <StatusBadge status={referral.status} className="shrink-0 capitalize" />
+            <StatusBadge status={current.status} className="shrink-0 capitalize" />
           </div>
           <SheetDescription className="sr-only">
-            Detalhes da indicação de {referral.nome_lead}
+            Detalhes da indicação de {current.nome_lead}
           </SheetDescription>
         </SheetHeader>
 
@@ -105,18 +145,15 @@ export function ReferralDetailDrawer({
 
           <DetailSection title="Dados do indicado">
             <dl className="space-y-3 text-sm">
-              <DetailField label="Nome" value={referral.nome_lead} />
-              <DetailField label="E-mail" value={referral.email_lead} />
-              <DetailField label="Telefone" value={referral.telefone_lead} />
+              <DetailField label="Nome" value={current.nome_lead} />
+              <DetailField label="E-mail" value={current.email_lead} />
+              <DetailField label="Telefone" value={current.telefone_lead} />
             </dl>
           </DetailSection>
 
           <Separator />
 
-          <TimelineSection
-            title="Entrada no programa"
-            steps={detail.timeline_entrada}
-          />
+          <TimelineSection title="Entrada no programa" steps={detail.timeline_entrada} />
 
           <TimelineSection
             title="Contratação da Amigo"
@@ -130,32 +167,42 @@ export function ReferralDetailDrawer({
               {CONCLUSION_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
                 const active = detail.conclusao === opt.key;
+                const loadingThis = saving === opt.key;
+
                 return (
-                  <div
+                  <button
                     key={opt.key}
+                    type="button"
+                    disabled={isSaving}
+                    onClick={() => handleSelectConclusion(opt.key)}
                     className={cn(
                       "rounded-xl border p-3 text-center transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      "disabled:pointer-events-none disabled:opacity-70",
                       active
                         ? opt.activeClass
-                        : "border-border bg-card text-muted-foreground opacity-60",
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/50",
+                      !active && !isSaving && "hover:border-primary/30",
                     )}
-                    aria-current={active ? "true" : undefined}
+                    aria-pressed={active}
+                    aria-busy={loadingThis}
                   >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 mx-auto mb-1.5",
-                        active ? "" : "text-muted-foreground",
-                      )}
-                    />
+                    {loadingThis ? (
+                      <Loader2 className="h-5 w-5 mx-auto mb-1.5 animate-spin" />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "h-5 w-5 mx-auto mb-1.5",
+                          active ? "" : "text-muted-foreground",
+                        )}
+                      />
+                    )}
                     <p className="text-sm font-semibold">{opt.label}</p>
                     <p className="text-[11px] mt-0.5 leading-tight">{opt.description}</p>
-                  </div>
+                  </button>
                 );
               })}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Exibição informativa. A conclusão será sincronizada com Supabase futuramente.
-            </p>
           </DetailSection>
         </div>
       </SheetContent>

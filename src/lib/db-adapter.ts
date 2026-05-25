@@ -17,6 +17,8 @@ export interface ReferralRow {
   telefone_lead: string | null;
   empresa: string | null;
   status: string;
+  /** disqualified | converted | lost */
+  conclusion_status: string | null;
   kind: "cliente" | "parceiro" | "outro";
   origem: string;
   valor_venda: number | null;
@@ -46,6 +48,7 @@ type ManualReferralDb = {
   referred_company_name: string | null;
   referral_type: string | null;
   status: string;
+  conclusion_status?: string | null;
   revenue_amount: number | null;
   bitrix_lead_id: string | null;
   bitrix_deal_id: string | null;
@@ -84,6 +87,7 @@ export function toReferral(
     telefone_lead: r.referred_phone,
     empresa: r.referred_company_name,
     status: r.status,
+    conclusion_status: r.conclusion_status ?? null,
     kind,
     origem: formatReferralOrigem(r.referral_source),
     valor_venda: r.revenue_amount != null ? Number(r.revenue_amount) : null,

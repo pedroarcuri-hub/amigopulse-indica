@@ -1,5 +1,6 @@
 import type { ReferralRow } from "@/lib/db-adapter";
 import { getReferralStatusLabel } from "@/lib/referral-status";
+import { conclusionFromDb } from "./conclusion";
 import { REFERRAL_KIND_LABEL } from "./types";
 
 export type ReferralConclusion = "desqualificada" | "convertida" | "perdida";
@@ -79,7 +80,7 @@ function buildTimeline(
   });
 }
 
-export function resolveConclusion(status: string): ReferralConclusion | null {
+export function resolveConclusionFromStatus(status: string): ReferralConclusion | null {
   const s = status.toLowerCase();
   if (["perdida", "perdido"].includes(s)) return "perdida";
   if (["desqualificada", "desqualificado"].includes(s)) return "desqualificada";
@@ -102,6 +103,13 @@ export function resolveConclusion(status: string): ReferralConclusion | null {
   return null;
 }
 
+export function resolveConclusion(referral: ReferralRow): ReferralConclusion | null {
+  return (
+    conclusionFromDb(referral.conclusion_status) ??
+    resolveConclusionFromStatus(referral.status)
+  );
+}
+
 export function toReferralDetailView(referral: ReferralRow): ReferralDetailView {
   return {
     ...referral,
@@ -117,7 +125,7 @@ export function toReferralDetailView(referral: ReferralRow): ReferralDetailView 
       referral.created_at,
       referral.updated_at,
     ),
-    conclusao: resolveConclusion(referral.status),
+    conclusao: resolveConclusion(referral),
   };
 }
 
