@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import NovaIndicacao from "./pages/NovaIndicacao";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,7 @@ const App = () => (
             {/* App (colaborador) */}
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Stub title="Dashboard" description="Visão geral das suas indicações." />} />
-              <Route path="nova-indicacao" element={<Stub title="Nova indicação" description="Cadastre uma nova indicação." />} />
+              <Route path="nova-indicacao" element={<NovaIndicacao />} />
               <Route path="indicacoes" element={<Stub title="Minhas indicações" description="Acompanhe o status das suas indicações." />} />
               <Route path="ranking" element={<Stub title="Ranking" description="Como você se compara aos colegas." />} />
               <Route path="ganhos" element={<Stub title="Meus ganhos" description="Bônus liberados e a receber." />} />
