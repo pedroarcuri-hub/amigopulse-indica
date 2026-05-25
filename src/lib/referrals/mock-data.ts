@@ -1,10 +1,13 @@
 import type { ReferralRow } from "@/lib/db-adapter";
+import { filterReferralsByUserEmail, normalizeUserEmail } from "./ownership";
 
-const MOCK_USER_ID = "mock-user-id";
+/** E-mail padrão do mock quando o usuário logado não tiver sessão (dev). */
+export const MOCK_DEFAULT_USER_EMAIL = "colaborador@amigotech.com.br";
 
-/** Dados fictícios — substituídos por Supabase em listUserReferrals. */
-export function getMockReferrals(userId: string): ReferralRow[] {
-  void userId;
+const OTHER_USER_EMAIL = "outro.colaborador@amigotech.com.br";
+
+/** Todas as indicações mock (inclui registros de outros usuários para testar filtro). */
+function getAllMockReferrals(): ReferralRow[] {
   const base = new Date();
   const daysAgo = (n: number) => {
     const d = new Date(base);
@@ -12,16 +15,21 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     return d.toISOString();
   };
 
+  const mine = MOCK_DEFAULT_USER_EMAIL;
+
   return [
     {
       id: "mock-1",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "Hugo Brito Cronemberger Freitas",
       email_lead: "hugo.cronemberger@clinicaexemplo.com.br",
       telefone_lead: "(11) 98765-4321",
       empresa: "Clínica Exemplo",
       status: "criada",
       kind: "parceiro",
+      origem: "Amigo Indica",
       valor_venda: null,
       revenue_amount: null,
       bitrix_lead_id: null,
@@ -31,13 +39,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-2",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "Dra. Marina Alves",
       email_lead: "marina.alves@hospitaldelta.com",
       telefone_lead: "(21) 99876-5432",
       empresa: "Hospital Delta",
       status: "contato",
       kind: "cliente",
+      origem: "Amigo Indica",
       valor_venda: null,
       revenue_amount: null,
       bitrix_lead_id: "BX-1024",
@@ -47,13 +58,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-3",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: null,
       nome_lead: "Dr. Ricardo Mendes",
       email_lead: null,
       telefone_lead: "(31) 99112-3344",
       empresa: "Centro Médico Horizonte",
       status: "reuniao",
       kind: "parceiro",
+      origem: "Indicação manual",
       valor_venda: null,
       revenue_amount: null,
       bitrix_lead_id: "BX-1088",
@@ -63,13 +77,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-4",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "Ana Paula Souza",
       email_lead: "ana.souza@labsaude.io",
       telefone_lead: null,
       empresa: "Lab Saúde",
       status: "proposta",
       kind: "cliente",
+      origem: "App Amigo Indica",
       valor_venda: 48000,
       revenue_amount: 48000,
       bitrix_lead_id: "BX-1102",
@@ -79,13 +96,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-5",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "João Pedro Nascimento",
       email_lead: "jp.nascimento@redeplus.com",
       telefone_lead: "(47) 98888-1111",
       empresa: "Rede Plus",
       status: "contratado",
       kind: "cliente",
+      origem: "Amigo Indica",
       valor_venda: 92000,
       revenue_amount: 92000,
       bitrix_lead_id: "BX-0991",
@@ -95,13 +115,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-6",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "Clínica Vida Nova",
       email_lead: "contato@vidanova.med.br",
       telefone_lead: "(85) 3333-4444",
       empresa: "Clínica Vida Nova",
       status: "constituicao",
       kind: "parceiro",
+      origem: "Amigo Indica",
       valor_venda: 65000,
       revenue_amount: 65000,
       bitrix_lead_id: "BX-1200",
@@ -111,13 +134,16 @@ export function getMockReferrals(userId: string): ReferralRow[] {
     },
     {
       id: "mock-7",
-      colaborador_id: MOCK_USER_ID,
+      colaborador_id: "mock-user-id",
+      created_by_email: mine,
+      referrer_email: mine,
       nome_lead: "Felipe Torres",
       email_lead: "felipe@startuphealth.com",
       telefone_lead: null,
       empresa: null,
       status: "perdida",
       kind: "outro",
+      origem: "Indicação manual",
       valor_venda: null,
       revenue_amount: null,
       bitrix_lead_id: null,
@@ -125,5 +151,36 @@ export function getMockReferrals(userId: string): ReferralRow[] {
       created_at: daysAgo(200),
       updated_at: daysAgo(180),
     },
+    {
+      id: "mock-other-1",
+      colaborador_id: "other-user-id",
+      created_by_email: OTHER_USER_EMAIL,
+      referrer_email: OTHER_USER_EMAIL,
+      nome_lead: "Indicação de Outro Colaborador",
+      email_lead: "lead@exemplo.com",
+      telefone_lead: null,
+      empresa: "Empresa X",
+      status: "criada",
+      kind: "cliente",
+      origem: "Amigo Indica",
+      valor_venda: null,
+      revenue_amount: null,
+      bitrix_lead_id: null,
+      bitrix_deal_id: null,
+      created_at: daysAgo(5),
+      updated_at: daysAgo(5),
+    },
   ];
+}
+
+/**
+ * Mock filtrado pelo e-mail da sessão Auth.
+ * Se o e-mail logado não tiver indicações, retorna as do e-mail padrão de dev.
+ */
+export function getMockReferrals(userEmail: string): ReferralRow[] {
+  const normalized = normalizeUserEmail(userEmail) || normalizeUserEmail(MOCK_DEFAULT_USER_EMAIL);
+  const all = getAllMockReferrals();
+  const mine = filterReferralsByUserEmail(all, normalized);
+  if (mine.length > 0) return mine;
+  return filterReferralsByUserEmail(all, MOCK_DEFAULT_USER_EMAIL);
 }

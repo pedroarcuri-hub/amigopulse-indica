@@ -78,7 +78,8 @@ export default function DashboardPage() {
           .eq("submitted_by_user_id", user!.id)
           .order("created_at", { ascending: false });
 
-        const rows = (data ?? []).map((r) => toReferral(r as never));
+        const submitterEmail = user!.email ?? profile?.email ?? "";
+        const rows = (data ?? []).map((r) => toReferral(r as never, submitterEmail));
         setRecentes(rows.slice(0, 5));
 
         const convertidas = rows.filter((r) =>

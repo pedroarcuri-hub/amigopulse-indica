@@ -14,6 +14,7 @@ import { REFERRAL_PIPELINE_STATUSES } from "@/lib/referral-status";
 import { getReferralStatusLabel } from "@/lib/referral-status";
 import type { ReferralRow } from "@/lib/db-adapter";
 import { ReferralListCard } from "@/components/referrals/ReferralListCard";
+import { ReferralDetailDrawer } from "@/components/referrals/ReferralDetailDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,15 +52,20 @@ export default function MinhasIndicacoesPage() {
   const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ReferralsListFilters>(defaultFilters);
+  const [selected, setSelected] = useState<ReferralRow | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.email) return;
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       try {
-        const rows = await listUserReferrals(user.id);
+        const rows = await listUserReferrals({
+          userId: user.id,
+          userEmail: user.email!,
+        });
         if (!cancelled) setReferrals(rows);
       } catch {
         if (!cancelled) {
@@ -74,7 +80,12 @@ export default function MinhasIndicacoesPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user?.id, user?.email]);
+
+  const openDetail = (referral: ReferralRow) => {
+    setSelected(referral);
+    setDrawerOpen(true);
+  };
 
   const filtered = useMemo(
     () => filterAndSortReferrals(referrals, filters),
@@ -193,9 +204,24 @@ export default function MinhasIndicacoesPage() {
         ) : filtered.length === 0 ? (
           <EmptyState hasReferrals={referrals.length > 0} />
         ) : (
-          filtered.map((r) => <ReferralListCard key={r.id} referral={r} />)
+          filtered.map((r) => (
+            <ReferralListCard
+              key={r.id}
+              referral={r}
+              onClick={() => openDetail(r)}
+            />
+          ))
         )}
       </div>
+
+      <ReferralDetailDrawer
+        referral={selected}
+        open={drawerOpen}
+        onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open) setSelected(null);
+        }}
+      />
     </div>
   );
 }
