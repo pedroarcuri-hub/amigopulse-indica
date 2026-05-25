@@ -36,13 +36,22 @@ export const professionalReferralSchema = z.object({
 export const studentReferralSchema = z.object({
   type: z.literal("student"),
   id: z.string().optional(),
+  // Sobre o estudante
   fullName: z.string().min(3, "Informe o nome completo."),
   email: emailSchema,
   phone: phoneSchema,
-  university: z.string().min(2, "Informe a instituição de ensino."),
-  course: z.string().max(120).optional(),
-  semester: z.string().max(40).optional(),
-  ...locationSchema,
+  cpf: z.string().max(14).optional(),
+  // Dados acadêmicos
+  course: z.string().min(1, "Informe o curso."),
+  formationCycle: z.enum(["semestral", "anual"], { required_error: "Selecione o ciclo de formação." }),
+  currentPeriod: z.string().min(1, "Selecione o período atual."),
+  // Instituição
+  institutionId: z.string().optional(),
+  institutionName: z.string().min(2, "Informe a instituição de ensino."),
+  institutionNotListed: z.boolean().optional(),
+  city_name: z.string().max(120).optional(),
+  state_uf: z.string().max(2).optional(),
+  // Extras
   notes: notesSchema,
 });
 

@@ -59,3 +59,21 @@ export const REFERRAL_DB_TYPE_KEYS = {
   professional: "client_professional",
   student: "client_student",
 } as const;
+
+/** Ciclos de formação — alinhado ao enum formation_cycle_enum do Supabase. */
+export const FORMATION_CYCLES = [
+  { value: "semestral", label: "Semestral" },
+  { value: "anual", label: "Anual" },
+] as const;
+
+/** Períodos por ciclo. Semestral → 1º a 12º semestre. Anual → 1º a 6º ano. */
+export const PERIODS_BY_CYCLE: Record<"semestral" | "anual", { value: string; label: string }[]> = {
+  semestral: Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1}º semestre`,
+  })),
+  anual: Array.from({ length: 6 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1}º ano`,
+  })),
+};
