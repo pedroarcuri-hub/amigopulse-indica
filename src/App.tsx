@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import MinhasIndicacoes from "./pages/MinhasIndicacoes";
 import NovaIndicacao from "./pages/NovaIndicacao";
+import Ranking from "./pages/Ranking";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,7 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="nova-indicacao" element={<NovaIndicacao />} />
               <Route path="indicacoes" element={<MinhasIndicacoes />} />
-              <Route path="ranking" element={<Stub title="Ranking" description="Como você se compara aos colegas." />} />
+              <Route path="ranking" element={<Ranking />} />
               <Route path="ganhos" element={<Stub title="Meus ganhos" description="Bônus liberados e a receber." />} />
               <Route path="regras" element={<Stub title="Regras do programa" />} />
               <Route path="ajuda" element={<Stub title="Central de ajuda" />} />
@@ -45,7 +46,7 @@ const App = () => (
             <Route path="/admin" element={<RequireAdmin><AppLayout /></RequireAdmin>}>
               <Route index element={<Stub title="Visão geral (admin)" />} />
               <Route path="indicacoes" element={<Stub title="Indicações (admin)" />} />
-              <Route path="ranking" element={<Stub title="Ranking (admin)" />} />
+              <Route path="ranking" element={<Ranking />} />
               <Route path="metricas" element={<Stub title="Métricas avançadas" />} />
               <Route path="pagamentos" element={<Stub title="Pagamentos" />} />
               <Route path="usuarios" element={<Stub title="Usuários" />} />
